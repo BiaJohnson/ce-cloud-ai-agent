@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars (gitignored) and fill in values:
+#   cp terraform.tfvars.example terraform.tfvars
+
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+image_tag  = "v1"
+model      = "gemini-2.5-flash"
+
+# Who can invoke the agent. Replace with your Google account if different.
+# Format: user:email@example.com  (never allUsers for this PoC)
+demo_invoker_members = [
+  "user:you@example.com",
+]
