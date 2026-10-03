@@ -4,18 +4,13 @@ output "agent_url" {
 }
 
 output "service_account_email" {
-  description = "Runtime SA for ops-agent (least-privilege: run.viewer, logging.viewer, aiplatform.user, secretAccessor)"
+  description = "Runtime SA for ops-agent (least-privilege: run.viewer, logging.viewer, aiplatform.user)"
   value       = google_service_account.ops_agent.email
 }
 
 output "artifact_registry_repository" {
   description = "Artifact Registry Docker repo hosting the agent image"
   value       = google_artifact_registry_repository.ai_agent.name
-}
-
-output "demo_secret_id" {
-  description = "Secret Manager secret id mounted into the agent as DEMO_CONFIG"
-  value       = google_secret_manager_secret.demo_config.secret_id
 }
 
 output "example_curl" {

@@ -27,6 +27,3 @@ resource "google_project_iam_member" "ops_agent_aiplatform_user" {
   role    = "roles/aiplatform.user"
   member  = "serviceAccount:${google_service_account.ops_agent.email}"
 }
-
-# Secret access is granted on the secret itself in secret_manager.tf
-# (roles/secretmanager.secretAccessor) — not project-wide.

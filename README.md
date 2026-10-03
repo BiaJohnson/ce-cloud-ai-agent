@@ -21,7 +21,7 @@ The architecture separates the AI reasoning layer from cloud permissions. Gemini
 - **Controlled AI Tool Execution:** Gemini selects from explicitly defined functions rather than receiving unrestricted cloud access. The application validates and executes allowlisted tools before returning results to the model for response generation.
 - **Least-Privilege Security:** Cloud Run uses a dedicated `sa-ops-agent` runtime service account with read-only access to Cloud Run and Cloud Logging, plus Vertex AI access required for Gemini.
 - **Authenticated Service Access:** The Cloud Run service requires authenticated callers with `roles/run.invoker`; the Terraform configuration does not grant public `allUsers` access.
-- **Infrastructure as Code:** Terraform provisions Cloud Run, Artifact Registry, the runtime service account, IAM bindings, Secret Manager resources, and required Google Cloud APIs.
+- **Infrastructure as Code:** Terraform provisions Cloud Run, Artifact Registry, the runtime service account, IAM bindings, and required Google Cloud APIs.
 - **Containerized Deployment:** The Flask application is packaged with Docker, built using Cloud Build, stored in Artifact Registry, and deployed to Cloud Run.
 
 ---
@@ -46,7 +46,7 @@ The request flow is:
 2. The application sends the prompt and available tool definitions to Gemini 2.5 Flash through Vertex AI.
 3. Gemini determines whether an approved tool is needed and returns a structured function-call request.
 4. The Python application verifies the requested function against its tool allowlist.
-5. The selected function queries Google Cloud using the Cloud Run runtime service account.
+5. The selected function queries the Cloud Run-configured project and region (`GCP_PROJECT`, `REGION`) using the runtime service account. Gemini cannot choose a different project.
 6. Tool results are returned to Gemini as structured function responses.
 7. Gemini uses those results to generate the final natural-language response.
 
@@ -62,7 +62,7 @@ The current implementation exposes two tools.
 
 ### `list_cloud_run_services()`
 
-Uses the Cloud Run API to enumerate services in the configured project and region.
+Uses the Cloud Run API to enumerate services in the project and region configured on Cloud Run. The tool takes no `project` or `region` arguments.
 
 Returns:
 
@@ -150,13 +150,19 @@ Google Cloud IAM
 
 The application controls **which operations exist**, while IAM controls **which cloud resources those operations can access**.
 
-### Secret Manager
+### Application configuration
 
-Terraform creates a `demo-config` Secret Manager secret and configures Cloud Run with a secret-backed `DEMO_CONFIG` environment variable.
+Cloud Run supplies ordinary environment variables — not Secret Manager — because these values are not sensitive:
 
-`roles/secretmanager.secretAccessor` is granted to the runtime service account **on that specific secret rather than project-wide**.
+```text
+GCP_PROJECT = <project id>
+REGION      = us-central1
+MODEL       = gemini-2.5-flash
+```
 
-The current value is intentionally non-sensitive and demonstrates the configuration pattern. The Python application does not currently consume `DEMO_CONFIG`.
+`GCP_PROJECT` and `REGION` are authoritative. The Python tools always query that project and region. Gemini can request an approved operation (`list_cloud_run_services`, `recent_error_logs`) but cannot choose a different target.
+
+Cloud Run authenticates Google client libraries as `sa-ops-agent` through Application Default Credentials, so no service-account key is stored.
 
 ---
 
@@ -178,8 +184,6 @@ The configuration provisions:
 - Dedicated runtime service account
 - Project-level IAM required by the agent
 - Cloud Run invoker permissions
-- Secret Manager secret and version
-- Resource-level Secret Manager access
 
 Variables keep project-specific configuration outside the reusable Terraform resources.
 
@@ -239,7 +243,6 @@ This repository does **not** currently implement an automated GitHub-triggered C
 │   ├── iam.tf
 │   ├── outputs.tf
 │   ├── providers.tf
-│   ├── secret_manager.tf
 │   ├── service_account.tf
 │   ├── terraform.tfvars.example
 │   ├── variables.tf
@@ -348,6 +351,6 @@ These are intentionally presented as **future production considerations**, not c
 
 ## Technologies
 
-**Google Cloud:** Cloud Run · Vertex AI · Gemini 2.5 Flash · Cloud Logging · Secret Manager · Artifact Registry · Cloud Build · IAM
+**Google Cloud:** Cloud Run · Vertex AI · Gemini 2.5 Flash · Cloud Logging · Artifact Registry · Cloud Build · IAM
 
 **Infrastructure & Application:** Terraform · Docker · Python · Flask · Google Cloud SDKs

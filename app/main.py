@@ -23,29 +23,27 @@ client = genai.Client(vertexai=True, project=PROJECT, location=REGION)
 SYSTEM = (
     "You are an internal ops assistant. "
     "Use tools when needed. Only use the provided read-only tools. "
-    "Never invent delete/update actions. Keep answers short and practical."
+    "Never invent delete/update actions. Keep answers short and practical. "
+    "The tools already operate against the application's configured Google Cloud "
+    "project and region. Do not ask the user which project or region to use."
 )
 
 TOOLS = types.Tool(
     function_declarations=[
         types.FunctionDeclaration(
             name="list_cloud_run_services",
-            description="List Cloud Run services in a project/region (names and URIs).",
+            description="List Cloud Run services in the configured Google Cloud project and region.",
             parameters=types.Schema(
                 type=types.Type.OBJECT,
-                properties={
-                    "project": types.Schema(type=types.Type.STRING),
-                    "region": types.Schema(type=types.Type.STRING),
-                },
+                properties={},
             ),
         ),
         types.FunctionDeclaration(
             name="recent_error_logs",
-            description="Fetch recent ERROR-level Cloud Logging entries (truncated).",
+            description="Return recent Google Cloud Logging entries from the configured project.",
             parameters=types.Schema(
                 type=types.Type.OBJECT,
                 properties={
-                    "project": types.Schema(type=types.Type.STRING),
                     "filter": types.Schema(type=types.Type.STRING),
                     "limit": types.Schema(type=types.Type.INTEGER),
                 },
@@ -59,7 +57,11 @@ def run_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
     fn = TOOL_FUNCTIONS.get(name)
     if not fn:
         return {"error": f"tool not allowed: {name}"}
-    return fn(**(args or {}))
+    # Ignore unexpected model args (e.g. leftover project/region).
+    # Python — not Gemini — controls which project and region are queried.
+    allowed = {"filter", "limit"} if name == "recent_error_logs" else set()
+    filtered = {k: v for k, v in (args or {}).items() if k in allowed}
+    return fn(**filtered)
 
 
 def chat_once(user_message: str) -> dict[str, Any]:

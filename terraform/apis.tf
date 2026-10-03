@@ -4,7 +4,6 @@
 locals {
   required_apis = toset([
     "aiplatform.googleapis.com",
-    "secretmanager.googleapis.com",
     "run.googleapis.com",
     "artifactregistry.googleapis.com",
     "logging.googleapis.com",

@@ -36,17 +36,6 @@ resource "google_cloud_run_v2_service" "ops_agent" {
         value = var.model
       }
 
-      # Mount demo secret as env var (proves Secret Manager wiring)
-      env {
-        name = "DEMO_CONFIG"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.demo_config.secret_id
-            version = "latest"
-          }
-        }
-      }
-
       ports {
         container_port = 8080
       }
@@ -63,8 +52,6 @@ resource "google_cloud_run_v2_service" "ops_agent" {
   depends_on = [
     google_project_service.apis,
     google_artifact_registry_repository.ai_agent,
-    google_secret_manager_secret_version.demo_config,
-    google_secret_manager_secret_iam_member.ops_agent_accessor,
     google_project_iam_member.ops_agent_run_viewer,
     google_project_iam_member.ops_agent_logging_viewer,
     google_project_iam_member.ops_agent_aiplatform_user,
