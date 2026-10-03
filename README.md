@@ -152,7 +152,7 @@ The application controls **which operations exist**, while IAM controls **which 
 
 ### Application configuration
 
-Cloud Run supplies ordinary environment variables — not Secret Manager — because these values are not sensitive:
+Cloud Run supplies the application with the following environment variables:
 
 ```text
 GCP_PROJECT = <project id>
